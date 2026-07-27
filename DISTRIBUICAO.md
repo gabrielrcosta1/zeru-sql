@@ -1,7 +1,13 @@
 # Distribuição — build e publicação
 
-Estado: **o pipeline está pronto, mas faltam 4 passos que só você pode fazer**
-(envolvem contas e chaves privadas). Estão marcados com ⚠️.
+Repositório: `github.com/gabrielrcosta1/zeru-sql`
+
+Estado: pipeline pronto e chaves geradas. **Faltam 3 passos** (⚠️), todos
+rápidos.
+
+Para subir uma nova versão depois que estiver tudo configurado, o ciclo é só:
+ajustar a versão nos dois `package.json`/`tauri.conf.json`, commitar, e
+`git tag vX.Y.Z && git push origin vX.Y.Z`.
 
 ---
 
@@ -26,63 +32,60 @@ dobraria o tamanho do download para todo mundo.
 
 ---
 
-## ⚠️ Passo 1 — Gerar as chaves do updater
-
-O auto-update precisa que cada pacote seja assinado, para o app recusar uma
-atualização que não veio de você. **Isso não tem relação com assinatura de
-código do sistema operacional** — é um esquema próprio do Tauri, e é de graça.
+## ✅ Passo 1 — Chaves do updater — FEITO
 
 ```bash
 npx tauri signer generate -w ~/.tauri/zeru-updater.key
 ```
 
-Guarde a senha que ele pedir. O comando imprime a **chave pública** e grava a
-privada em `~/.tauri/zeru-updater.key`.
+Gerou `~/.tauri/zeru-updater.key` (privada) e `.key.pub` (pública).
 
-**A chave privada nunca vai para o repositório.** Se ela vazar, qualquer pessoa
-pode publicar uma "atualização" que seus usuários instalarão sem questionar.
+**A chave privada nunca vai para o repositório.** Se vazar, qualquer pessoa
+pode publicar uma "atualização" que seus usuários instalam sem questionar. Se
+você perdê-la, não existe recuperação: usuários já instalados param de receber
+updates para sempre, porque o app deles só confia nessa chave.
 
----
-
-## ⚠️ Passo 2 — Preencher `src-tauri/tauri.conf.json`
-
-Dois placeholders precisam ser trocados:
-
-```jsonc
-"plugins": {
-  "updater": {
-    "endpoints": [
-      // troque SEU-USUARIO pelo seu usuário/organização do GitHub
-      "https://github.com/SEU-USUARIO/zeru-sql/releases/latest/download/latest.json"
-    ],
-    // cole aqui a chave PÚBLICA impressa no passo 1
-    "pubkey": "SUBSTITUA_PELA_CHAVE_PUBLICA_GERADA_COM_TAURI_SIGNER"
-  }
-}
-```
-
-Deixei placeholders inválidos de propósito: se você esquecer, o build falha com
-erro claro em vez de gerar um app com updater quebrado.
+Faça um backup dela (gerenciador de senhas, ou um cofre offline).
 
 ---
 
-## ⚠️ Passo 3 — Criar o repositório e os secrets
+## ⚠️ Passo 2 — Inserir a chave pública na config
+
+O endpoint já está preenchido com o seu repositório. Falta a chave:
 
 ```bash
-git init
-git add .
-git commit -m "Zeru SQL"
-git branch -M main
-git remote add origin https://github.com/SEU-USUARIO/zeru-sql.git
-git push -u origin main
+./scripts/set-updater-pubkey.sh
 ```
 
-Em **Settings → Secrets and variables → Actions**, crie:
+O script lê `~/.tauri/zeru-updater.key.pub`, valida o formato e grava em
+`src-tauri/tauri.conf.json`. Existe para evitar o erro clássico de copiar e
+colar — a chave é uma linha longa de base64, e um caractere perdido só aparece
+como "update rejeitado" muito depois, na máquina do usuário final.
+
+Confira e commite:
+
+```bash
+git diff src-tauri/tauri.conf.json
+git add -A && git commit -m "configura updater"
+git push
+```
+
+---
+
+## ⚠️ Passo 3 — Criar os secrets no GitHub
+
+Em **Settings → Secrets and variables → Actions → New repository secret**:
 
 | Secret | Valor |
 |---|---|
 | `TAURI_SIGNING_PRIVATE_KEY` | conteúdo de `~/.tauri/zeru-updater.key` |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | a senha do passo 1 |
+| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | a senha que você definiu no passo 1 |
+
+Para copiar a privada sem abrir o arquivo:
+
+```bash
+pbcopy < ~/.tauri/zeru-updater.key
+```
 
 O `GITHUB_TOKEN` é automático, não precisa criar.
 
@@ -90,13 +93,13 @@ O `GITHUB_TOKEN` é automático, não precisa criar.
 
 ## ⚠️ Passo 4 — Publicar a primeira versão
 
-A tag e a versão em `tauri.conf.json` precisam bater.
+A tag e a versão em `tauri.conf.json` precisam bater — o updater compara
+versões, e uma tag `v0.2.0` com config em `0.1.0` publica um pacote que se
+anuncia como mais antigo do que é.
 
 ```bash
-# ajuste "version" em src-tauri/tauri.conf.json e "version" em package.json
-git commit -am "v0.1.0"
 git tag v0.1.0
-git push origin main --tags
+git push origin v0.1.0
 ```
 
 O workflow dispara, monta os quatro alvos (~15-25 min na primeira vez, menos

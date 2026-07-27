@@ -49,16 +49,19 @@
     },
     "linux": {
       "deb": {
-        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+        "depends": [
+          "libwebkit2gtk-4.1-0",
+          "libgtk-3-0"
+        ]
       }
     }
   },
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/SEU-USUARIO/zeru-sql/releases/latest/download/latest.json"
+        "https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/latest.json"
       ],
-      "pubkey": "SUBSTITUA_PELA_CHAVE_PUBLICA_GERADA_COM_TAURI_SIGNER"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkxRDNBNjYwNUJCQzdDNDIKUldSQ2ZMeGJZS2JUa1FjMnVlRzBLc1BqdmdGZnZ4SXl4elE5dHFJTXhtenpWanAzTW1aekV5Z0gK"
     }
   }
 }
