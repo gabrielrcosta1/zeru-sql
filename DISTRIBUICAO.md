@@ -2,12 +2,15 @@
 
 Repositório: `github.com/gabrielrcosta1/zeru-sql`
 
-Estado: pipeline pronto e chaves geradas. **Faltam 3 passos** (⚠️), todos
-rápidos.
+**Não há chaves, secrets nem contas pagas envolvidas.** O ciclo inteiro é:
 
-Para subir uma nova versão depois que estiver tudo configurado, o ciclo é só:
-ajustar a versão nos dois `package.json`/`tauri.conf.json`, commitar, e
-`git tag vX.Y.Z && git push origin vX.Y.Z`.
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+O GitHub monta os instaladores das três plataformas e cria uma Release (como
+rascunho) com todos eles anexados. Você revisa e publica.
 
 ---
 
@@ -20,10 +23,10 @@ macOS, WebView2 no Windows, WebKitGTK no Linux. Não existe flag que gere um
 
 O workflow roda os quatro alvos em paralelo:
 
-| Alvo | Runner | Instaladores gerados |
+| Alvo | Runner | Instaladores |
 |---|---|---|
-| macOS Apple Silicon | `macos-latest` | `.dmg`, `.app.tar.gz` |
-| macOS Intel | `macos-latest` | `.dmg`, `.app.tar.gz` |
+| macOS Apple Silicon | `macos-latest` | `.dmg` |
+| macOS Intel | `macos-latest` | `.dmg` |
 | Windows | `windows-latest` | `.msi`, `.exe` (NSIS) |
 | Linux | `ubuntu-22.04` | `.AppImage`, `.deb`, `.rpm` |
 
@@ -32,89 +35,35 @@ dobraria o tamanho do download para todo mundo.
 
 ---
 
-## ✅ Passo 1 — Chaves do updater — FEITO
+## Publicar uma versão
+
+1. Ajuste a versão nos **dois** arquivos — eles precisam bater:
+   - `package.json` → `"version"`
+   - `src-tauri/tauri.conf.json` → `"version"`
+
+2. Commite e marque a tag:
 
 ```bash
-npx tauri signer generate -w ~/.tauri/zeru-updater.key
-```
-
-Gerou `~/.tauri/zeru-updater.key` (privada) e `.key.pub` (pública).
-
-**A chave privada nunca vai para o repositório.** Se vazar, qualquer pessoa
-pode publicar uma "atualização" que seus usuários instalam sem questionar. Se
-você perdê-la, não existe recuperação: usuários já instalados param de receber
-updates para sempre, porque o app deles só confia nessa chave.
-
-Faça um backup dela (gerenciador de senhas, ou um cofre offline).
-
----
-
-## ⚠️ Passo 2 — Inserir a chave pública na config
-
-O endpoint já está preenchido com o seu repositório. Falta a chave:
-
-```bash
-./scripts/set-updater-pubkey.sh
-```
-
-O script lê `~/.tauri/zeru-updater.key.pub`, valida o formato e grava em
-`src-tauri/tauri.conf.json`. Existe para evitar o erro clássico de copiar e
-colar — a chave é uma linha longa de base64, e um caractere perdido só aparece
-como "update rejeitado" muito depois, na máquina do usuário final.
-
-Confira e commite:
-
-```bash
-git diff src-tauri/tauri.conf.json
-git add -A && git commit -m "configura updater"
-git push
-```
-
----
-
-## ⚠️ Passo 3 — Criar os secrets no GitHub
-
-Em **Settings → Secrets and variables → Actions → New repository secret**:
-
-| Secret | Valor |
-|---|---|
-| `TAURI_SIGNING_PRIVATE_KEY` | conteúdo de `~/.tauri/zeru-updater.key` |
-| `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` | a senha que você definiu no passo 1 |
-
-Para copiar a privada sem abrir o arquivo:
-
-```bash
-pbcopy < ~/.tauri/zeru-updater.key
-```
-
-O `GITHUB_TOKEN` é automático, não precisa criar.
-
----
-
-## ⚠️ Passo 4 — Publicar a primeira versão
-
-A tag e a versão em `tauri.conf.json` precisam bater — o updater compara
-versões, e uma tag `v0.2.0` com config em `0.1.0` publica um pacote que se
-anuncia como mais antigo do que é.
-
-```bash
+git commit -am "v0.1.0"
 git tag v0.1.0
-git push origin v0.1.0
+git push origin main --tags
 ```
 
-O workflow dispara, monta os quatro alvos (~15-25 min na primeira vez, menos
-depois pelo cache) e cria a Release **como rascunho**. Revise os arquivos e
-clique em *Publish release*.
+3. Acompanhe em **Actions**. Leva ~15-25 min na primeira vez; depois o cache do
+   Rust derruba isso bastante.
 
-> O rascunho é intencional: uma release publicada é imediatamente baixável, e
-> um instalador quebrado no ar é pior que uma release atrasada.
+4. Vá em **Releases**, revise os arquivos e clique em **Publish release**.
+
+> A release sai como rascunho de propósito: uma release publicada é
+> imediatamente baixável, e instalador quebrado no ar é pior que release
+> atrasada.
 
 ---
 
 ## O que seus usuários vão ver
 
-Os instaladores **não são assinados** — foi a escolha para esta primeira
-rodada. Consequências concretas:
+Os instaladores **não são assinados** — sem Apple Developer Program e sem
+certificado Windows. Consequências concretas:
 
 **macOS.** Na primeira abertura o Gatekeeper bloqueia. O caminho é clicar com o
 botão direito no app → **Abrir** → **Abrir**. Se aparecer *"o app está
@@ -129,34 +78,33 @@ O usuário clica em **Mais informações** → **Executar assim mesmo**.
 
 **Linux.** Nenhum aviso. AppImage precisa de `chmod +x`.
 
-Esse texto já está no corpo da release, gerado pelo workflow.
+Esse texto já vai automaticamente no corpo da release, gerado pelo workflow.
 
 ### Quando valer a pena assinar
 
 - **macOS**: Apple Developer Program, US$ 99/ano. Elimina o aviso por completo.
-  No CI entra como mais quatro secrets (certificado .p12, senha, Apple ID,
-  senha de app específica).
+  No CI entra como quatro secrets (certificado .p12, senha, Apple ID, senha de
+  app específica).
 - **Windows**: certificado OV (~US$ 200/ano) reduz o SmartScreen; EV (~US$
   400-600/ano) elimina. O OV ainda mostra aviso até acumular reputação.
 
-Sem assinatura, espere perder uma parte dos usuários no primeiro susto. Com um
+Sem assinatura, espere perder uma parte dos usuários no primeiro susto. Com
 público técnico, o custo é bem menor.
 
 ---
 
-## Como funciona o auto-update
+## Atualizações
 
-1. `tauri-action` gera `latest.json` e o anexa à release.
-2. O app consulta esse arquivo na abertura (`UpdateBanner`).
-3. Havendo versão maior, aparece uma faixa no topo com o botão **Atualizar**.
-4. O download é verificado contra a chave pública antes de ser aplicado.
+Não há auto-update. Quando você publicar uma versão nova, os usuários precisam
+voltar na página de Releases e baixar de novo — o app não avisa nem se atualiza
+sozinho.
 
-**O app nunca atualiza sozinho.** Um cliente SQL pode estar com uma transação
-aberta ou uma query não salva — reiniciar sem perguntar não é aceitável. A
-verificação é silenciosa; a instalação é decisão do usuário.
-
-Se a verificação falhar (offline, release ainda não publicada), o app registra
-no console e segue normalmente. Nada de diálogo de erro.
+Se um dia quiser ligar isso, é o plugin `tauri-plugin-updater`. Ele exige um par
+de chaves minisign (gratuito, gerado com `npx tauri signer generate`) para o app
+recusar um pacote que não veio de você. **Isso não tem relação com assinatura de
+código do sistema operacional** — são coisas separadas que por acaso se chamam
+"chave". Você já gerou um par em `~/.tauri/zeru-updater.key`; ele continua
+válido se quiser religar depois.
 
 ---
 
@@ -168,7 +116,7 @@ cd src-tauri && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
 O CI roda isso a cada push, e o workflow de release roda de novo antes de
-empacotar — uma tag não vira instalador se os testes falharem.
+empacotar — uma tag não vira instalador se a verificação falhar.
 
 Para testar o empacotamento local antes de marcar a tag:
 

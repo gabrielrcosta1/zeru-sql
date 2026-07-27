@@ -175,6 +175,54 @@ Dependencies: Task 005.
 
 ---
 
+## Task 025
+Status: Waiting Validation
+
+Title:
+Remover o auto-update — distribuição só com instalador
+
+Validação:
+- `tsc` 0 erros, `eslint` exit 0, `vite build` OK; JSON e YAML válidos.
+- `grep -rni "updater|plugin-process|UpdateBanner"` em src/, src-tauri/,
+  package.json e .github/ → nenhuma referência restante.
+- PENDENTE: `cargo check` (2 dependências removidas).
+
+Description:
+O usuário questionou, com razão, por que este app precisaria de chaves se o
+anterior não precisou. **Falha de comunicação minha**: usei "chave" para duas
+coisas sem relação, na mesma explicação.
+
+- Assinatura de código do SO (Apple US$ 99/ano, certificado Windows) — é o que
+  faz sumir o aviso de "app danificado". Nunca tivemos, e a decisão foi não ter.
+- Chave do updater (minisign, gratuita, local) — serve só para o app recusar um
+  pacote de atualização que não veio do autor.
+
+**A chave nunca foi requisito para buildar ou distribuir.** Era consequência de
+uma escolha anterior do próprio usuário ("sim, com auto-update"), e eu não
+deixei essa dependência clara na hora.
+
+Decisão: remover o auto-update. Distribuição fica igual à do app anterior —
+tag, push, instalador pronto.
+
+Affected files:
+- src-tauri/Cargo.toml, src/lib.rs, tauri.conf.json, capabilities/default.json
+- src/App.tsx, src/components/shell/UpdateBanner.tsx (removido)
+- scripts/set-updater-pubkey.sh (removido)
+- package.json (2 deps removidas), .github/workflows/release.yml, DISTRIBUICAO.md
+
+Notes:
+- `createUpdaterArtifacts` e o bloco `plugins.updater` saíram do tauri.conf.
+- Os secrets `TAURI_SIGNING_*` saíram do workflow. Se ele já os criou no
+  GitHub, ficam inertes — não custam nada e não precisam ser apagados.
+- A chave em `~/.tauri/zeru-updater.key` continua válida. Religar o updater
+  depois não exige gerar outra.
+- Nada mais no pipeline mudou: os quatro alvos, o CI e o release em rascunho
+  seguem iguais.
+
+Dependencies: Task 024.
+
+---
+
 ## Task 024
 Status: Waiting Validation
 

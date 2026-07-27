@@ -17,10 +17,6 @@ use history::HistoryStore;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        // Desktop only: the updater has no meaning on mobile targets, where the
-        // store handles distribution.
-        .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_process::init())
         .manage(ConnectionManager::default())
         .manage(HistoryStore::default())
         .manage(AiRegistry::default())

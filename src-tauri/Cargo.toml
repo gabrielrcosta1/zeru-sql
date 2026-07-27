@@ -17,9 +17,6 @@ tauri = { version = "2", features = ["macos-private-api"] }
 # Native save dialog: WKWebView ignores `<a download>` on blob URLs, so exports
 # have to go through the OS file picker rather than the browser download path.
 tauri-plugin-dialog = "2"
-tauri-plugin-updater = "2"
-# Relaunch after an update is installed.
-tauri-plugin-process = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["sync"] }

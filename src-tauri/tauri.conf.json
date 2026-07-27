@@ -32,7 +32,6 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": true,
     "publisher": "Zeru",
     "category": "DeveloperTool",
     "shortDescription": "Cliente SQL com assistente de IA",
@@ -54,14 +53,6 @@
           "libgtk-3-0"
         ]
       }
-    }
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/latest.json"
-      ],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkxRDNBNjYwNUJCQzdDNDIKUldSQ2ZMeGJZS2JUa1FjMnVlRzBLc1BqdmdGZnZ4SXl4elE5dHFJTXhtenpWanAzTW1aekV5Z0gK"
     }
   }
 }

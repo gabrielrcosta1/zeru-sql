@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { Panel, PanelGroup } from "react-resizable-panels";
 import { useApp } from "@/store/app";
 import { TitleBar } from "@/components/shell/TitleBar";
-import { UpdateBanner } from "@/components/shell/UpdateBanner";
 import { StatusBar } from "@/components/shell/StatusBar";
 import { ResizeHandle } from "@/components/shell/ResizeHandle";
 import { Sidebar } from "@/components/sidebar/Sidebar";
@@ -24,7 +23,6 @@ export default function App() {
   return (
     <div className="flex h-full flex-col overflow-hidden bg-base text-content">
       <TitleBar />
-      <UpdateBanner />
 
       <div className="min-h-0 flex-1">
         <PanelGroup direction="horizontal" autoSaveId="zeru-main">
