@@ -1,0 +1,118 @@
+name: Release
+
+# Publica os instaladores das três plataformas ao empurrar uma tag `vX.Y.Z`.
+#
+# Tauri não faz cross-compile: cada sistema precisa do seu próprio runner, com
+# o WebView nativo e o toolchain daquela plataforma. Por isso a matriz abaixo
+# tem quatro entradas e não um build só.
+
+on:
+  push:
+    tags:
+      - "v*"
+  # Permite disparar manualmente para testar o pipeline sem criar uma tag.
+  workflow_dispatch:
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    strategy:
+      # Um alvo quebrado não deve cancelar os outros três: é melhor publicar
+      # três instaladores e investigar o quarto do que não publicar nada.
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+            label: macOS (Apple Silicon)
+          - platform: macos-latest
+            target: x86_64-apple-darwin
+            label: macOS (Intel)
+          - platform: ubuntu-22.04
+            target: ""
+            label: Linux
+          - platform: windows-latest
+            target: ""
+            label: Windows
+
+    runs-on: ${{ matrix.platform }}
+    name: ${{ matrix.label }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      # O build do Rust é o passo lento; sem cache cada release leva ~20 min
+      # por plataforma.
+      - name: Cache do Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+          key: ${{ matrix.target }}
+
+      # Ubuntu não traz o WebKit nem as libs de bandeja/SVG que o Tauri linka.
+      - name: Dependências do sistema (Linux)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            patchelf
+
+      - name: Instalar dependências do front
+        run: npm ci
+
+      - name: Verificar antes de empacotar
+        run: |
+          npm run typecheck
+          npm run lint
+
+      - name: Testes do backend
+        working-directory: src-tauri
+        run: cargo test
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Assinatura do PACOTE DE ATUALIZAÇÃO (minisign do próprio Tauri).
+          # Não tem relação com assinatura de código do sistema operacional:
+          # serve para o app provar que um update veio de você.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Zeru ${{ github.ref_name }}"
+          releaseBody: |
+            ## Instalação
+
+            **macOS** — baixe o `.dmg` da sua arquitetura (Apple Silicon ou Intel).
+            O app não é assinado, então na primeira abertura o macOS reclama.
+            Clique com o botão direito no app → **Abrir** → **Abrir**.
+            Se aparecer "está danificado", rode no Terminal:
+            `xattr -cr /Applications/Zeru.app`
+
+            **Windows** — baixe o `.msi` ou o `.exe`. O SmartScreen mostra um
+            aviso azul: **Mais informações** → **Executar assim mesmo**.
+
+            **Linux** — use o `.AppImage` (dê permissão com `chmod +x`) ou o
+            `.deb` em distros baseadas em Debian/Ubuntu.
+          # Sai como rascunho: dá chance de revisar os quatro instaladores antes
+          # de qualquer pessoa baixar.
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}

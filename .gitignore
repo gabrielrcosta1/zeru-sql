@@ -1,0 +1,20 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+
+# Rust / Tauri
+src-tauri/target
+src-tauri/gen
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+
+# Chaves de assinatura do updater. A privada NUNCA vai para o repositório —
+# ela vive no seu computador e como secret do GitHub.
+*.key
+*.key.pub
+!src-tauri/icons/*.png

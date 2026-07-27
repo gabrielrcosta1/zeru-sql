@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Zeru",
+  "version": "0.1.0",
+  "identifier": "com.zeru.sql",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev",
+    "beforeBuildCommand": "npm run build"
+  },
+  "app": {
+    "macOSPrivateApi": true,
+    "windows": [
+      {
+        "title": "Zeru",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 1040,
+        "minHeight": 640,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "shadow": true,
+        "backgroundColor": "#0b0d10"
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "createUpdaterArtifacts": true,
+    "publisher": "Zeru",
+    "category": "DeveloperTool",
+    "shortDescription": "Cliente SQL com assistente de IA",
+    "longDescription": "Cliente de banco de dados para PostgreSQL e MySQL, com explorador de esquema, editor SQL e um assistente de IA que conhece o esquema da conexão.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/SEU-USUARIO/zeru-sql/releases/latest/download/latest.json"
+      ],
+      "pubkey": "SUBSTITUA_PELA_CHAVE_PUBLICA_GERADA_COM_TAURI_SIGNER"
+    }
+  }
+}

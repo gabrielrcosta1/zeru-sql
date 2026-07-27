@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zeru — SQL Client</title>
+    <link rel="icon" type="image/png" href="/zeru-icon.png" />
+  </head>
+  <body style="margin: 0; background: #0b0d10">
+    <div id="root">
+      <!-- Splash shown until React mounts; replaced on first render. Keeps the
+           window from appearing as a blank black rectangle during startup. -->
+      <div
+        style="
+          position: fixed;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          background: #0b0d10;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        "
+      >
+        <img
+          src="/zeru-icon.png"
+          alt=""
+          width="52"
+          height="52"
+          style="border-radius: 12px"
+        />
+        <div style="color: #5f6875; font-size: 12px; letter-spacing: 0.02em">
+          Carregando Zeru…
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
