@@ -25,15 +25,19 @@ jobs:
         include:
           - platform: macos-latest
             target: aarch64-apple-darwin
+            slug: macos-arm
             label: macOS (Apple Silicon)
           - platform: macos-latest
             target: x86_64-apple-darwin
+            slug: macos-intel
             label: macOS (Intel)
           - platform: ubuntu-22.04
             target: ""
+            slug: linux
             label: Linux
           - platform: windows-latest
             target: ""
+            slug: windows
             label: Windows
 
     runs-on: ${{ matrix.platform }}
@@ -59,7 +63,7 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "./src-tauri -> target"
-          key: ${{ matrix.target }}
+          key: ${{ matrix.slug }}
 
       # Ubuntu não traz o WebKit nem as libs de bandeja/SVG que o Tauri linka.
       - name: Dependências do sistema (Linux)
@@ -93,21 +97,78 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Zeru ${{ github.ref_name }}"
           releaseBody: |
-            ## Instalação
+            ## Baixar
 
-            **macOS** — baixe o `.dmg` da sua arquitetura (Apple Silicon ou Intel).
-            O app não é assinado, então na primeira abertura o macOS reclama.
-            Clique com o botão direito no app → **Abrir** → **Abrir**.
-            Se aparecer "está danificado", rode no Terminal:
+            | Sistema | Arquivo |
+            |---|---|
+            | macOS (Apple Silicon, M1 em diante) | `Zeru-macOS-AppleSilicon.dmg` |
+            | macOS (Intel) | `Zeru-macOS-Intel.dmg` |
+            | Windows | `Zeru-Windows-x64-setup.exe` |
+            | Linux (universal) | `Zeru-Linux-x86_64.AppImage` |
+            | Linux (Debian/Ubuntu) | `Zeru-Linux-amd64.deb` |
+
+            Os arquivos estão em **Assets**, logo abaixo.
+
+            ## Instalar
+
+            **macOS** — o app não é assinado. Abra o `.dmg`, arraste para
+            Aplicativos, e na primeira vez clique com o **botão direito** no app
+            → **Abrir** → **Abrir**. Se disser que "está danificado", rode:
             `xattr -cr /Applications/Zeru.app`
 
-            **Windows** — baixe o `.msi` ou o `.exe`. O SmartScreen mostra um
-            aviso azul: **Mais informações** → **Executar assim mesmo**.
+            **Windows** — o SmartScreen mostra um aviso azul:
+            **Mais informações** → **Executar assim mesmo**.
 
-            **Linux** — use o `.AppImage` (dê permissão com `chmod +x`) ou o
-            `.deb` em distros baseadas em Debian/Ubuntu.
-          # Sai como rascunho: dá chance de revisar os quatro instaladores antes
-          # de qualquer pessoa baixar.
-          releaseDraft: true
+            **Linux** — AppImage precisa de `chmod +x Zeru-Linux-x86_64.AppImage`.
+          # Publicada direto, não como rascunho: rascunho não aparece para
+          # ninguém além do dono do repositório, e os arquivos não ficam
+          # baixáveis. A rede de segurança são as verificações acima, que
+          # rodam antes de empacotar.
+          releaseDraft: false
           prerelease: false
           args: ${{ matrix.target && format('--target {0}', matrix.target) || '' }}
+
+      # Os nomes que o Tauri gera carregam a versão (`Zeru_0.1.0_aarch64.dmg`),
+      # o que impede link permanente: a URL mudaria a cada release. Aqui os
+      # instaladores são anexados de novo com nome fixo, para que o README
+      # possa apontar para `/releases/latest/download/<nome>` e nunca quebrar.
+      - name: Anexar com nomes estáveis
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="${{ github.ref_name }}"
+          # `if` em vez de `[ ... ] && ...`: sob `set -e`, um teste falso no
+          # começo de uma lista && é uma armadilha conhecida.
+          base="src-tauri/target"
+          if [ -n "${{ matrix.target }}" ]; then
+            base="$base/${{ matrix.target }}"
+          fi
+          base="$base/release/bundle"
+
+          attach() { # $1 = subpasta, $2 = extensão, $3 = nome final
+            local found
+            found="$(find "$base/$1" -maxdepth 1 -name "*.$2" -print -quit 2>/dev/null || true)"
+            if [ -z "$found" ]; then
+              echo "aviso: nenhum .$2 em $base/$1"
+              return 0
+            fi
+            cp "$found" "${RUNNER_TEMP}/$3"
+            gh release upload "$tag" "${RUNNER_TEMP}/$3" --clobber
+            echo "anexado: $3"
+          }
+
+          case "${{ matrix.slug }}" in
+            macos-arm)   attach dmg dmg "Zeru-macOS-AppleSilicon.dmg" ;;
+            macos-intel) attach dmg dmg "Zeru-macOS-Intel.dmg" ;;
+            windows)
+              attach nsis exe "Zeru-Windows-x64-setup.exe"
+              attach msi  msi "Zeru-Windows-x64.msi"
+              ;;
+            linux)
+              attach appimage AppImage "Zeru-Linux-x86_64.AppImage"
+              attach deb      deb      "Zeru-Linux-amd64.deb"
+              ;;
+          esac

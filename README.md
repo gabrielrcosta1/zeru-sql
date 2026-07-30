@@ -1,69 +1,146 @@
-# Zeru
+<div align="center">
 
-A modern, **AI-native SQL client** for Windows, macOS and Linux — built with **Tauri + Rust + React**. Zeru reimagines the DataGrip / TablePlus / Beekeeper experience for the AI era: visual navigation, a professional SQL editor, and an assistant that understands the connected database — all sharing the same context.
+<img src="public/zeru-icon.png" width="120" alt="Zeru" />
 
-> This repository currently contains the **UI layer only**. Data is served from typed mock fixtures; database drivers and the AI bridge are stubbed for later.
+# Zeru SQL
 
-## Stack
+**Cliente de banco de dados com assistente de IA que conhece o seu esquema.**
 
-- **Tauri 2** (Rust shell) — desktop window, native chrome
-- **React 18 + TypeScript** (strict)
-- **Vite 5** — dev server & bundler
-- **Tailwind CSS 3** — token-driven dark theme
-- **Monaco** — SQL editor (bundled locally, works offline)
-- **zustand** — UI state
-- **react-resizable-panels**, **lucide-react**
+PostgreSQL · MySQL · MariaDB — macOS, Windows e Linux
 
-## Running
+</div>
+
+---
+
+## Baixar
+
+| Sistema | Arquivo |
+|---|---|
+| **macOS** — Apple Silicon (M1 em diante) | [Zeru-macOS-AppleSilicon.dmg](https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/Zeru-macOS-AppleSilicon.dmg) |
+| **macOS** — Intel | [Zeru-macOS-Intel.dmg](https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/Zeru-macOS-Intel.dmg) |
+| **Windows** — instalador | [Zeru-Windows-x64-setup.exe](https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/Zeru-Windows-x64-setup.exe) |
+| **Windows** — MSI | [Zeru-Windows-x64.msi](https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/Zeru-Windows-x64.msi) |
+| **Linux** — universal | [Zeru-Linux-x86_64.AppImage](https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/Zeru-Linux-x86_64.AppImage) |
+| **Linux** — Debian/Ubuntu | [Zeru-Linux-amd64.deb](https://github.com/gabrielrcosta1/zeru-sql/releases/latest/download/Zeru-Linux-amd64.deb) |
+
+Não sabe qual escolher no Mac? Menu  → **Sobre este Mac**. Se disser "Apple
+M1/M2/M3/M4", use Apple Silicon; se disser "Intel", use Intel.
+
+Todas as versões: [página de releases](https://github.com/gabrielrcosta1/zeru-sql/releases).
+
+### Instalação
+
+O app **não é assinado** — não há certificado da Apple nem da Microsoft por
+trás dele. Os dois sistemas avisam. É esperado, e o contorno é rápido:
+
+**macOS.** Abra o `.dmg`, arraste o Zeru para *Aplicativos*. Na primeira
+abertura, clique com o **botão direito** no app → **Abrir** → **Abrir** (abrir
+com clique duplo não oferece essa opção). Se aparecer *"o app está danificado e
+não pode ser aberto"*, é o atributo de quarentena do download:
+
+```bash
+xattr -cr /Applications/Zeru.app
+```
+
+**Windows.** O SmartScreen mostra *"O Windows protegeu o seu PC"*. Clique em
+**Mais informações** → **Executar assim mesmo**.
+
+**Linux.** O AppImage precisa de permissão de execução:
+
+```bash
+chmod +x Zeru-Linux-x86_64.AppImage
+./Zeru-Linux-x86_64.AppImage
+```
+
+O app não se atualiza sozinho — para uma versão nova, volte aqui e baixe.
+
+---
+
+## O que ele faz
+
+**Explorador de esquema.** Tabelas, views, colunas com PK/FK/unique, índices,
+funções, procedures e triggers. Diagrama de relacionamentos montado a partir das
+chaves estrangeiras reais.
+
+**Editor SQL.** Monaco com realce de sintaxe, formatação (⌘⇧F pelo botão),
+executar tudo (⌘↵) ou só a seleção (⌘⇧↵). Scripts com vários comandos rodam em
+sequência e cada um vira uma aba de resultado.
+
+**Grade de resultados.** Paginação real no servidor, busca e filtro por coluna,
+ordenação, cópia de célula/linha/JSON, exportação para CSV, Excel e JSON.
+
+**Assistente de IA.** Você pergunta em português; ele responde com SQL. Antes de
+gerar, ele escolhe as tabelas relevantes do seu esquema e lê algumas linhas
+reais para não inventar coluna. O SQL sempre aparece **antes** de rodar, e
+comandos destrutivos exigem confirmação explícita.
+
+Funciona com qualquer provedor compatível com a API da OpenAI — OpenAI,
+OpenRouter, Groq, ou um **Ollama local** se os dados não podem sair da máquina.
+A chave fica no keychain do sistema operacional e nunca é exposta à interface.
+
+> **Sobre privacidade:** ao usar a IA, o esquema do banco, o SQL da aba aberta e
+> uma amostra do último resultado são enviados ao provedor escolhido. O painel
+> mostra, embaixo de cada resposta, exatamente o que foi enviado. Para dados
+> sensíveis, use um endpoint local.
+
+**Conexões.** Senhas no keychain do sistema, nunca em texto puro no disco.
+
+---
+
+## Desenvolvimento
+
+Requer [Rust](https://rustup.rs) e Node 20+.
 
 ```bash
 npm install
-npm run dev          # web preview at http://localhost:1420
-npm run tauri dev    # full desktop app (requires Rust toolchain)
+npm run tauri dev     # app completo
+npm run dev           # só o front, no navegador (sem banco)
 ```
 
-Verification:
+Verificação — o CI roda exatamente isto:
 
 ```bash
-npm run typecheck    # tsc --noEmit  (passes clean)
-npm run build        # tsc + vite production build
+npm run typecheck
+npm run lint
+npm run build
+cd src-tauri && cargo clippy --all-targets -- -D warnings && cargo test
 ```
 
-## Architecture
+### Estrutura
 
 ```
-src/
-├── App.tsx                  # 3-column resizable shell
-├── types.ts                 # domain model (Connection, Schema, QueryResult, AiMessage…)
-├── store/app.ts             # single zustand store (UI state + simulated exec/AI)
+src/                        # React + TypeScript
+├── store/app.ts            # estado global (zustand) e orquestração da IA
 ├── lib/
-│   ├── cn.ts                # class merge helper
-│   ├── format.ts            # row/byte/time formatting
-│   ├── export.ts            # CSV / JSON / Excel exporters
-│   ├── monaco.ts            # local Monaco wiring (offline)
-│   └── mock/                # schema + result/AI/history fixtures
-├── components/
-│   ├── ui/                  # design-system primitives (Button, Input, Menu, Modal…)
-│   ├── shell/               # TitleBar, StatusBar, ResizeHandle
-│   ├── sidebar/             # connections + schema tree (tables → columns/PK/FK/indexes)
-│   ├── editor/              # tabbed Monaco editor + results split
-│   ├── results/             # grid: sort / paginate / search / copy / export, DML feedback
-│   ├── ai/                  # persistent assistant panel + SQL cards
-│   ├── history/             # recent / favorites / AI / connections
-│   └── screens/             # connection modal, table explorer, relationships diagram, ⌘K palette
+│   ├── api.ts              # ponte para os comandos Tauri
+│   ├── ai-context.ts       # montagem do prompt e seleção de tabelas
+│   └── export.ts           # CSV / Excel / JSON
+└── components/             # ui, shell, sidebar, editor, results, ai, history
+
+src-tauri/src/              # Rust
+├── db/
+│   ├── mod.rs              # pools de conexão por engine
+│   ├── introspect.rs       # leitura de catálogo (pg_catalog / information_schema)
+│   └── query.rs            # execução, split de statements, paginação
+├── ai.rs                   # provedor OpenAI-compatible com streaming
+├── history.rs              # histórico persistente
+└── persist.rs              # conexões salvas + keychain
 ```
 
-### Design language
+Publicação e build multiplataforma: [DISTRIBUICAO.md](DISTRIBUICAO.md).
+Registro de decisões e histórico técnico: [etapas.md](etapas.md).
 
-A token-driven dark theme (`src/index.css` → CSS variables → Tailwind semantic colors). Deep charcoal surfaces, an **iris** accent, JetBrains Mono for SQL/data, Inter for UI. Soft borders, discreet motion, generous spacing.
+---
 
-### The three interaction modes share one context
+## Limitações conhecidas
 
-Visual navigation, manual SQL, and the AI assistant operate on the same active connection / tab / result. The AI always **shows generated SQL before running it**, and never auto-executes destructive commands (they require explicit confirmation).
+- SQLite e SQL Server aparecem na interface como "em breve" — ainda não há
+  driver.
+- A exportação cobre a página carregada, não o resultado inteiro.
+- `CREATE PROCEDURE` do MySQL sem trocar o `DELIMITER` é quebrado nos `;`
+  internos, igual ao cliente oficial.
+- O corpo/source de funções não é carregado na árvore.
 
-## Known follow-ups (backend phase)
+## Stack
 
-- Wire real database drivers in `src-tauri` and expose Tauri commands; replace `lib/mock/*`.
-- Connect a real model to the AI panel (schema-aware prompting) via `store/app.ts::sendAi`.
-- Trim the Monaco bundle to the SQL language only (currently ships all grammars).
-- No ESLint config yet — add one for the backend phase.
+Tauri 2 · Rust · sqlx · React 18 · TypeScript · Vite · Tailwind · Monaco · zustand

@@ -175,6 +175,57 @@ Dependencies: Task 005.
 
 ---
 
+## Task 026
+Status: Waiting Validation
+
+Title:
+Release baixável — publicar direto, nomes fixos e seção de download no README
+
+Validação:
+- YAML válido; `bash -n` no script do passo de anexar.
+- Fluxo do `attach` testado com arquivo presente, pasta vazia e pasta
+  inexistente: nenhum caso aborta o job.
+- Checagem cruzada: os 6 links do README batem 1:1 com os 6 arquivos que o
+  workflow anexa.
+- PENDENTE: nova tag e conferir a release publicada.
+
+Description:
+O usuário rodou o build, funcionou, e **não achou o arquivo para baixar**.
+Duas falhas minhas:
+
+1. **`releaseDraft: true`.** Rascunho não aparece para ninguém além do dono do
+   repositório e os arquivos não ficam baixáveis. Eu escolhi isso por
+   segurança, escrevi "clique em Publish release" no meio de um documento
+   longo, e na prática isso é o mesmo que não avisar. Trocado para publicar
+   direto — a rede de segurança continua sendo typecheck/lint/testes rodando
+   antes de empacotar.
+2. **README sem seção de download.** Pior: o README ainda descrevia o projeto
+   como "UI layer only, mock fixtures" — texto de antes de todo o backend
+   existir. Estava mentindo sobre o que o app é.
+
+Affected files:
+- .github/workflows/release.yml
+- README.md (reescrito)
+
+Notes:
+- **Nomes de arquivo estáveis.** O Tauri gera `Zeru_0.1.0_aarch64.dmg`, com a
+  versão embutida — link permanente é impossível, a URL mudaria a cada release.
+  Um passo novo reanexa cada instalador com nome fixo
+  (`Zeru-macOS-AppleSilicon.dmg`), o que permite ao README apontar para
+  `/releases/latest/download/<nome>` sem quebrar nunca.
+- O passo usa `find -print -quit` e trata ausência de arquivo como aviso, não
+  erro: `.rpm` e `.msi` nem sempre são gerados, e perder um formato opcional
+  não pode derrubar a publicação dos outros.
+- **Bug corrigido antes de rodar**: a linha `[ -n "$target" ] && base=...`
+  sob `set -euo pipefail` é armadilha conhecida — trocada por `if`.
+- README reescrito: download em primeiro lugar, com tabela por plataforma e
+  instruções de Gatekeeper/SmartScreen. Inclui aviso explícito de privacidade
+  sobre o que a IA envia ao provedor, e uma seção de limitações conhecidas.
+
+Dependencies: Task 025.
+
+---
+
 ## Task 025
 Status: Waiting Validation
 
