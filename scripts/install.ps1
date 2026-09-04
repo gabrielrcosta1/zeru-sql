@@ -113,9 +113,20 @@ if (-not $hasWebView2) {
 
 # ---------------------------------------------------------------- Node.js
 
+# Nao use `node -p '...'` aqui: o PowerShell come as aspas duplas ao passar o
+# argumento para um .exe nativo, o script quebra em silencio e a deteccao vira 0.
+$script:NodeExe = 'node'
 function Get-NodeMajor {
-    if (-not (Test-Command node)) { return 0 }
-    try { [int]((node -p 'process.versions.node.split(".")[0]') 2>$null) } catch { 0 }
+    $exe = $script:NodeExe
+    if ($exe -eq 'node') {
+        $cmd = Get-Command node -ErrorAction SilentlyContinue
+        if (-not $cmd) { return 0 }
+        $exe = $cmd.Source
+    }
+    if (-not (Test-Path $exe)) { return 0 }
+    $out = & $exe -v 2>$null
+    if ("$out" -match 'v(\d+)\.') { return [int]$Matches[1] }
+    return 0
 }
 
 if ((Get-NodeMajor) -lt $NodeMajorMin) {
@@ -134,10 +145,14 @@ if ((Get-NodeMajor) -lt $NodeMajorMin) {
         Expand-Archive -Path $zip -DestinationPath $BuildHome -Force
         Remove-Item $zip -Force
     }
+    if (-not (Test-Path (Join-Path $nodeDir 'node.exe'))) {
+        Fail "Node extraido mas node.exe nao esta em $nodeDir"
+    }
+    $script:NodeExe = Join-Path $nodeDir 'node.exe'
     $env:Path = "$nodeDir;$env:Path"
 }
 if ((Get-NodeMajor) -lt $NodeMajorMin) { Fail 'Nao foi possivel preparar o Node.' }
-Write-Info "Node $(node -v) pronto"
+Write-Info "Node $(& $script:NodeExe -v) pronto"
 
 # ------------------------------------------------------------------- Rust
 
