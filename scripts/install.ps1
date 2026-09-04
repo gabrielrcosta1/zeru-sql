@@ -181,7 +181,9 @@ if (Test-Path 'package-lock.json') { npm ci } else { npm install }
 Assert-NativeSuccess 'npm'
 
 Write-Step ' Compilando (a primeira vez leva de 10 a 25 minutos) '
-npm run tauri build -- --bundles nsis
+# Chamada direta ao CLI do Tauri: no Windows o `npm run ... -- --flag` repassa o
+# proprio `--` adiante, e o Tauri manda tudo depois dele para o cargo.
+& $script:NodeExe 'node_modules/@tauri-apps/cli/tauri.js' build --bundles nsis
 Assert-NativeSuccess 'tauri build'
 
 $bundleDir = Join-Path $Repo 'src-tauri\target\release\bundle'
