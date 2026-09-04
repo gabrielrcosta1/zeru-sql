@@ -54,6 +54,40 @@ chmod +x Zeru-Linux-x86_64.AppImage
 
 O app não se atualiza sozinho — para uma versão nova, volte aqui e baixe.
 
+### Alternativa: compilar você mesmo (sem aviso nenhum)
+
+Os avisos acima existem por causa da marca de quarentena que o navegador põe em
+arquivos **baixados**. Um app compilado na sua própria máquina não tem essa
+marca — nem Gatekeeper, nem SmartScreen, nem certificado pago envolvido.
+
+**macOS e Linux:**
+
+```bash
+git clone https://github.com/gabrielrcosta1/zeru-sql.git
+cd zeru-sql
+./scripts/install.sh
+```
+
+**Windows** (PowerShell):
+
+```powershell
+git clone https://github.com/gabrielrcosta1/zeru-sql.git
+cd zeru-sql
+powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+```
+
+O script cuida do resto: instala o que faltar (Node, Rust, bibliotecas do
+sistema), compila e instala o app — em *Aplicativos* no macOS, pelo `.deb`/`.rpm`
+ou AppImage no Linux, e pelo instalador no menu Iniciar no Windows.
+
+Custo: a primeira compilação baixa o toolchain do Rust (~1 GB) e leva de 10 a 25
+minutos. Depois disso, recompilar é rápido. Use `--build-only` (ou `-BuildOnly`
+no Windows) se quiser só gerar o instalador sem instalar.
+
+No Windows, se as ferramentas de compilação C++ da Microsoft não estiverem
+instaladas, o script para e mostra o comando `winget` para instalá-las — esse é
+o único passo que precisa de administrador.
+
 ---
 
 ## O que ele faz
@@ -89,7 +123,7 @@ A chave fica no keychain do sistema operacional e nunca é exposta à interface.
 
 ## Desenvolvimento
 
-Requer [Rust](https://rustup.rs) e Node 20+.
+Requer [Rust](https://rustup.rs) e Node 24+.
 
 ```bash
 npm install
